@@ -22,14 +22,13 @@ const categoryConfig: Record<PostCategory, { label: string; icon: typeof AlertTr
   aviso: { label: "Aviso", icon: AlertTriangle, color: "text-yellow-500" },
   recomendacion: { label: "Recomendación", icon: Lightbulb, color: "text-accent" },
   ambiente: { label: "Ambiente", icon: Music, color: "text-purple-500" },
-  visitantes: { label: "Visitantes", icon: User, color: "text-emerald-500" },
   pregunta: { label: "Pregunta", icon: HelpCircle, color: "text-blue-500" },
 }
 
 export function CommunitySection({ team }: CommunitySectionProps) {
   const { toast } = useToast()
   const { profile, isInitialized, initializeUser, incrementReviews, addExperience } = useUserStore()
-  const { createPost, toggleLikePost, addReply, getPostsByTeam, initializePosts } = useCommunityStore()
+  const { posts, createPost, toggleLikePost, addReply, getPostsByTeam } = useCommunityStore()
 
   const [activeTab, setActiveTab] = useState<"all" | PostCategory>("all")
   const [newPostContent, setNewPostContent] = useState("")
@@ -42,11 +41,9 @@ export function CommunitySection({ team }: CommunitySectionProps) {
   // Initialize user if needed
   useEffect(() => {
     if (!isInitialized) {
-      void initializeUser()
+      initializeUser()
     }
-
-    void initializePosts()
-  }, [isInitialized, initializeUser, initializePosts])
+  }, [isInitialized, initializeUser])
 
   // Get posts for this team
   const teamPosts = getPostsByTeam(team.id)
@@ -78,7 +75,7 @@ export function CommunitySection({ team }: CommunitySectionProps) {
     setIsSubmitting(true)
 
     // Create post in store
-    await createPost({
+    createPost({
       userId: profile.id,
       userName: profile.name,
       userLevel: profile.level,
@@ -87,12 +84,11 @@ export function CommunitySection({ team }: CommunitySectionProps) {
       rating: newPostCategory === "recomendacion" || newPostCategory === "ambiente" ? newPostRating : undefined,
       teamId: team.id,
       teamName: team.name,
-      isGlobalPost: false,
     })
 
     // Update user stats
-    await incrementReviews()
-    await addExperience(25)
+    incrementReviews()
+    addExperience(25)
 
     // Simulate delay
     await new Promise((resolve) => setTimeout(resolve, 500))
@@ -106,7 +102,7 @@ export function CommunitySection({ team }: CommunitySectionProps) {
     })
   }
 
-  const handleLikePost = async (postId: string) => {
+  const handleLikePost = (postId: string) => {
     if (!profile) {
       toast({
         title: "Inicia sesión",
@@ -115,13 +111,13 @@ export function CommunitySection({ team }: CommunitySectionProps) {
       })
       return
     }
-    await toggleLikePost(postId, profile.id)
+    toggleLikePost(postId, profile.id)
   }
 
   const handleAddReply = async (postId: string) => {
     if (!profile || !replyContent.trim()) return
 
-    await addReply(postId, {
+    addReply(postId, {
       userId: profile.id,
       userName: profile.name,
       content: replyContent.trim(),

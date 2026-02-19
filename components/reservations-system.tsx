@@ -59,7 +59,7 @@ export function ReservationsSystem({ team }: ReservationsSystemProps) {
   const { toast } = useToast()
   const { profile, favoritePois, toggleFavoritePoi, initializeUser, isInitialized } = useUserStore()
   const { createReservation } = useReservationsStore()
-  const { getPoisByTeam, loadPois } = usePoisStore()
+  const { getPoisByTeam } = usePoisStore()
 
   const [activeTab, setActiveTab] = useState<"bar" | "restaurant" | "parking">("bar")
   const [selectedVenue, setSelectedVenue] = useState<POI | null>(null)
@@ -82,11 +82,9 @@ export function ReservationsSystem({ team }: ReservationsSystemProps) {
   // Initialize user if needed
   useEffect(() => {
     if (!isInitialized) {
-      void initializeUser()
+      initializeUser()
     }
-
-    void loadPois()
-  }, [isInitialized, initializeUser, loadPois])
+  }, [isInitialized, initializeUser])
 
   // Pre-fill form with profile data
   useEffect(() => {
@@ -126,7 +124,7 @@ export function ReservationsSystem({ team }: ReservationsSystemProps) {
     setIsLoading(true)
 
     // Create real reservation in store
-    const reservation = await createReservation({
+    const reservation = createReservation({
       userId: profile.id,
       userName: reservationData.name,
       userEmail: reservationData.email,
@@ -168,7 +166,7 @@ export function ReservationsSystem({ team }: ReservationsSystemProps) {
   }
 
   const handleToggleFavorite = (poiId: string) => {
-    void toggleFavoritePoi(poiId)
+    toggleFavoritePoi(poiId)
     const isFavorite = favoritePois.includes(poiId)
     toast({
       title: isFavorite ? "Eliminado de favoritos" : "Añadido a favoritos",

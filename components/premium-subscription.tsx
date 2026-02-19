@@ -1,8 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useSubscriptionStore, SUBSCRIPTION_PLANS, type PlanType } from "@/lib/stores/subscription-store"
-import { useUserStore } from "@/lib/stores"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -20,26 +19,12 @@ import { Check, Crown, Zap, Star, Loader2, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export function PremiumSubscription() {
-  const { subscription, isLoading, subscribeToPlan, cancelSubscription, reactivateSubscription, getPlan, setUserId, loadSubscription } =
+  const { subscription, isLoading, subscribeToPlan, cancelSubscription, reactivateSubscription, getPlan } =
     useSubscriptionStore()
-  const { profile, initializeUser, isInitialized } = useUserStore()
   const { toast } = useToast()
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [processingPlan, setProcessingPlan] = useState<PlanType | null>(null)
-
-  useEffect(() => {
-    if (!isInitialized) {
-      void initializeUser()
-    }
-  }, [isInitialized, initializeUser])
-
-  useEffect(() => {
-    if (profile?.id) {
-      setUserId(profile.id)
-      void loadSubscription(profile.id)
-    }
-  }, [profile?.id, setUserId, loadSubscription])
 
   const currentPlan = getPlan()
   const isSubscribed = subscription && subscription.status === "active"

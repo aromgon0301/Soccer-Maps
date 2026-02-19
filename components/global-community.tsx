@@ -37,7 +37,6 @@ const CATEGORY_CONFIG: Record<PostCategory, { label: string; icon: React.Element
   recomendacion: { label: "Recomendación", icon: Star, color: "bg-accent/10 text-accent border-accent/30" },
   ambiente: { label: "Ambiente", icon: Users, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
   visitantes: { label: "Visitantes", icon: Eye, color: "bg-purple-500/10 text-purple-600 border-purple-500/30" },
-  pregunta: { label: "Pregunta", icon: MessageCircle, color: "bg-violet-100 text-violet-700" },
 }
 
 function formatTimeAgo(dateString: string): string {
@@ -256,7 +255,7 @@ function PostCard({ post, onLike, onReply, currentUserId }: PostCardProps) {
 }
 
 export function GlobalCommunity() {
-  const { createPost, toggleLikePost, addReply, getAllPosts, initializePosts } = useCommunityStore()
+  const { posts, createPost, toggleLikePost, addReply, getAllPosts } = useCommunityStore()
   const { profile, initializeUser } = useUserStore()
   const [mounted, setMounted] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
@@ -269,9 +268,8 @@ export function GlobalCommunity() {
 
   useEffect(() => {
     setMounted(true)
-    void initializeUser()
-    void initializePosts()
-  }, [initializeUser, initializePosts])
+    initializeUser()
+  }, [initializeUser])
 
   if (!mounted) {
     return (
@@ -286,7 +284,7 @@ export function GlobalCommunity() {
   const allPosts = getAllPosts()
   const filteredPosts = categoryFilter === "all" ? allPosts : allPosts.filter((p) => p.category === categoryFilter)
 
-  const handleCreatePost = async () => {
+  const handleCreatePost = () => {
     if (!newPostContent.trim() || !profile) return
 
     let match: MatchSelection | undefined
@@ -307,7 +305,7 @@ export function GlobalCommunity() {
 
     const favoriteTeam = profile.favoriteTeamId ? teams.find((t) => t.id === profile.favoriteTeamId) : null
 
-    await createPost({
+    createPost({
       userId: profile.id,
       userName: profile.name,
       userLevel: profile.level,
@@ -331,7 +329,7 @@ export function GlobalCommunity() {
   const handleReply = (postId: string, content: string) => {
     if (!profile) return
     const favoriteTeam = profile.favoriteTeamId ? teams.find((t) => t.id === profile.favoriteTeamId) : null
-    void addReply(postId, {
+    addReply(postId, {
       userId: profile.id,
       userName: profile.name,
       userFavoriteTeamBadge: favoriteTeam?.badge,
@@ -494,7 +492,7 @@ export function GlobalCommunity() {
             <PostCard
               key={post.id}
               post={post}
-              onLike={() => void toggleLikePost(post.id, profile?.id || "anonymous")}
+              onLike={() => toggleLikePost(post.id, profile?.id || "anonymous")}
               onReply={(content) => handleReply(post.id, content)}
               currentUserId={profile?.id || "anonymous"}
             />

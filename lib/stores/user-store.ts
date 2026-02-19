@@ -80,8 +80,27 @@ export const useUserStore = create<UserState>()(
       initializeUser: () => {
         const state = get()
         if (!state.profile) {
+          // Try to get auth user info
+          let authData: { id?: string; name?: string; email?: string } = {}
+          try {
+            const raw = typeof window !== "undefined" ? localStorage.getItem("soccer-maps-auth") : null
+            if (raw) {
+              const parsed = JSON.parse(raw)
+              if (parsed?.state?.currentUser) {
+                authData = parsed.state.currentUser
+              }
+            }
+          } catch {
+            // ignore parse errors
+          }
+
           set({
-            profile: { ...DEFAULT_PROFILE, id: `user-${Date.now()}` },
+            profile: {
+              ...DEFAULT_PROFILE,
+              id: authData.id || `user-${Date.now()}`,
+              name: authData.name || DEFAULT_PROFILE.name,
+              email: authData.email || DEFAULT_PROFILE.email,
+            },
             isInitialized: true,
           })
         } else {

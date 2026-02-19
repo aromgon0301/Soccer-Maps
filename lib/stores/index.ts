@@ -1,3 +1,6 @@
+export { useAuthStore } from "./auth-store"
+export type { AuthUser } from "./auth-store"
+
 export { useUserStore } from "./user-store"
 export type {
   UserProfile,

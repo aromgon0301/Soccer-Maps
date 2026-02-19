@@ -1,0 +1,21 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/community/[postId]/like/route": "/api/community/[postId]/like",
+  "/api/community/[postId]/reply/route": "/api/community/[postId]/reply",
+  "/api/community/route": "/api/community",
+  "/api/pois/route": "/api/pois",
+  "/api/profile/route": "/api/profile",
+  "/api/reservations/route": "/api/reservations",
+  "/api/stripe/cancel/route": "/api/stripe/cancel",
+  "/api/stripe/checkout/route": "/api/stripe/checkout",
+  "/api/stripe/reactivate/route": "/api/stripe/reactivate",
+  "/api/stripe/webhook/route": "/api/stripe/webhook",
+  "/api/subscription/route": "/api/subscription",
+  "/comparator/page": "/comparator",
+  "/page": "/",
+  "/planner/[id]/page": "/planner/[id]",
+  "/premium/page": "/premium",
+  "/profile/page": "/profile",
+  "/team/[id]/page": "/team/[id]"
+}

@@ -1,12 +1,14 @@
 import Link from "next/link"
-import { Search, MapPin, User, BarChart3, Crown } from "lucide-react"
+import { Search, MapPin, User, BarChart3, Crown, UserPlus } from "lucide-react"
 import { teams } from "@/lib/teams-data"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { GlobalCommunity } from "@/components/global-community"
+import { AuthBanner } from "@/components/auth-banner"
 
 export default function HomePage() {
   return (
@@ -97,6 +99,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Auth Banner for non-authenticated users */}
+      <AuthBanner />
 
       {/* Main Content - Two columns on desktop */}
       <section className="py-8 md:py-12 flex-1">

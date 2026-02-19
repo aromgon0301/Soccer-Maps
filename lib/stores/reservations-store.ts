@@ -1,35 +1,24 @@
 import { create } from "zustand"
-import { persist } from "zustand/middleware"
 
 export type ReservationStatus = "pending" | "confirmed" | "cancelled" | "completed"
 
 export interface Reservation {
   id: string
-
-  // User info
   userId: string
   userName: string
   userEmail: string
   userPhone: string
-
-  // Venue info
   poiId: string
   poiName: string
   poiType: "bar" | "restaurant" | "parking"
-
-  // Match info
   teamId: string
   teamName: string
   stadiumName: string
   matchDate: string
-
-  // Reservation details
   guests: number
   time: string
   price: number
   status: ReservationStatus
-
-  // Metadata
   createdAt: string
   confirmationCode: string
   notes?: string
@@ -37,72 +26,86 @@ export interface Reservation {
 
 interface ReservationsState {
   reservations: Reservation[]
-
-  // Actions
-  createReservation: (reservation: Omit<Reservation, "id" | "createdAt" | "confirmationCode" | "status">) => Reservation
-  updateReservationStatus: (id: string, status: ReservationStatus) => void
-  cancelReservation: (id: string) => void
+  createReservation: (reservation: Omit<Reservation, "id" | "createdAt" | "confirmationCode" | "status">) => Promise<Reservation>
+  updateReservationStatus: (id: string, status: ReservationStatus) => Promise<void>
+  cancelReservation: (id: string) => Promise<void>
+  loadReservations: (userId?: string, teamId?: string) => Promise<void>
   getReservationsByUser: (userId: string) => Reservation[]
   getReservationsByTeam: (teamId: string) => Reservation[]
   getUpcomingReservations: (userId: string) => Reservation[]
 }
 
-const generateConfirmationCode = () => {
-  return `RSV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-}
+export const useReservationsStore = create<ReservationsState>()((set, get) => ({
+  reservations: [],
 
-export const useReservationsStore = create<ReservationsState>()(
-  persist(
-    (set, get) => ({
-      reservations: [],
+  loadReservations: async (userId, teamId) => {
+    const query = new URLSearchParams()
+    if (userId) {
+      query.set("userId", userId)
+    }
+    if (teamId) {
+      query.set("teamId", teamId)
+    }
 
-      createReservation: (reservationData) => {
-        const reservation: Reservation = {
-          ...reservationData,
-          id: `res-${Date.now()}`,
-          status: "confirmed",
-          createdAt: new Date().toISOString(),
-          confirmationCode: generateConfirmationCode(),
-        }
+    const suffix = query.toString() ? `?${query.toString()}` : ""
+    const response = await fetch(`/api/reservations${suffix}`)
+    const data = await response.json()
+    set({ reservations: data.reservations ?? [] })
+  },
 
-        set((state) => ({
-          reservations: [...state.reservations, reservation],
-        }))
+  createReservation: async (reservationData) => {
+    const response = await fetch("/api/reservations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(reservationData),
+    })
 
-        return reservation
-      },
+    if (!response.ok) {
+      throw new Error("No se pudo crear la reserva")
+    }
 
-      updateReservationStatus: (id, status) => {
-        set((state) => ({
-          reservations: state.reservations.map((r) => (r.id === id ? { ...r, status } : r)),
-        }))
-      },
+    const data = await response.json()
+    const reservation = data.reservation as Reservation
 
-      cancelReservation: (id) => {
-        set((state) => ({
-          reservations: state.reservations.map((r) =>
-            r.id === id ? { ...r, status: "cancelled" as ReservationStatus } : r,
-          ),
-        }))
-      },
+    set((state) => ({
+      reservations: [reservation, ...state.reservations],
+    }))
 
-      getReservationsByUser: (userId) => {
-        return get().reservations.filter((r) => r.userId === userId)
-      },
+    return reservation
+  },
 
-      getReservationsByTeam: (teamId) => {
-        return get().reservations.filter((r) => r.teamId === teamId)
-      },
+  updateReservationStatus: async (id, status) => {
+    const response = await fetch("/api/reservations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    })
 
-      getUpcomingReservations: (userId) => {
-        const now = new Date()
-        return get()
-          .reservations.filter((r) => r.userId === userId && r.status !== "cancelled" && new Date(r.matchDate) >= now)
-          .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
-      },
-    }),
-    {
-      name: "soccer-maps-reservations",
-    },
-  ),
-)
+    if (!response.ok) {
+      throw new Error("No se pudo actualizar la reserva")
+    }
+
+    set((state) => ({
+      reservations: state.reservations.map((r) => (r.id === id ? { ...r, status } : r)),
+    }))
+  },
+
+  cancelReservation: async (id) => {
+    await get().updateReservationStatus(id, "cancelled")
+  },
+
+  getReservationsByUser: (userId) => {
+    return get().reservations.filter((r) => r.userId === userId)
+  },
+
+  getReservationsByTeam: (teamId) => {
+    return get().reservations.filter((r) => r.teamId === teamId)
+  },
+
+  getUpcomingReservations: (userId) => {
+    const now = new Date()
+    return get()
+      .reservations.filter((r) => r.userId === userId && r.status !== "cancelled" && new Date(r.matchDate) >= now)
+      .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
+  },
+}))

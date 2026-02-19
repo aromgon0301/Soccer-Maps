@@ -108,7 +108,7 @@ const ARRIVAL_OPTIONS: { value: ArrivalPreference; label: string }[] = [
 
 export function FanProfile() {
   const { profile, visits, isInitialized, initializeUser, updateProfile, setFavoriteTeam } = useUserStore()
-  const { reservations } = useReservationsStore()
+  const { reservations, loadReservations } = useReservationsStore()
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -124,9 +124,15 @@ export function FanProfile() {
   // Initialize user on mount
   useEffect(() => {
     if (!isInitialized) {
-      initializeUser()
+      void initializeUser()
     }
   }, [isInitialized, initializeUser])
+
+  useEffect(() => {
+    if (profile?.id) {
+      void loadReservations(profile.id)
+    }
+  }, [profile?.id, loadReservations])
 
   // Sync form with profile when dialog opens
   useEffect(() => {
@@ -149,7 +155,7 @@ export function FanProfile() {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 800))
 
-    updateProfile({
+    await updateProfile({
       name: editForm.name,
       email: editForm.email,
       fanType: editForm.fanType,
@@ -159,7 +165,7 @@ export function FanProfile() {
     })
 
     if (editForm.favoriteTeamId) {
-      setFavoriteTeam(editForm.favoriteTeamId)
+      await setFavoriteTeam(editForm.favoriteTeamId)
     }
 
     setIsSaving(false)

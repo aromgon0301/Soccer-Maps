@@ -375,8 +375,7 @@ export const teams: Team[] = [
       location: { lat: 39.5903, lng: 2.6308 },
       distanceToCenter: "5 km",
     },
-    badge: "/placeholder.svg?height=100&width=100",
-    history: "Club balear con éxitos en los 90 y 2000, ganador de la Copa del Rey en 2003.",
+    badge: "/rcd-mallorca-football-badge-red-black.jpg",
     cityInfo: {
       description: "Capital de Mallorca, ciudad mediterránea con playas paradisíacas y casco histórico encantador.",
       climate: "Mediterráneo (12-30°C)",
@@ -397,8 +396,7 @@ export const teams: Team[] = [
       location: { lat: 28.1003, lng: -15.4567 },
       distanceToCenter: "8 km",
     },
-    badge: "/placeholder.svg?height=100&width=100",
-    history: "Club canario histórico, de regreso a Primera División con una afición apasionada.",
+    badge: "/ud-las-palmas-football-badge-yellow.jpg",
     cityInfo: {
       description: "Ciudad atlántica con clima primaveral todo el año, playas urbanas y ambiente cosmopolita.",
       climate: "Subtropical (18-26°C todo el año)",
@@ -419,8 +417,7 @@ export const teams: Team[] = [
       location: { lat: 41.3479, lng: 2.0756 },
       distanceToCenter: "10 km",
     },
-    badge: "/placeholder.svg?height=100&width=100",
-    history: "El otro club de Barcelona, con fuerte identidad propia y cuatro Copas del Rey.",
+    badge: "/rcd-espanyol-football-badge-blue-white.jpg",
     cityInfo: {
       description:
         "Ciudad cosmopolita mediterránea, capital de Cataluña, conocida por su arquitectura modernista y vida cultural vibrante.",
@@ -442,8 +439,7 @@ export const teams: Team[] = [
       location: { lat: 40.3261, lng: -3.7608 },
       distanceToCenter: "12 km de Madrid",
     },
-    badge: "/placeholder.svg?height=100&width=100",
-    history: "Club del sur de Madrid que alcanzó la Primera División en 2016 por primera vez en su historia.",
+    badge: "/cd-leganes-football-badge-blue-white.jpg",
     cityInfo: {
       description: "Ciudad al sur de Madrid, bien conectada con la capital y con ambiente familiar.",
       climate: "Continental (5-30°C variación estacional)",
@@ -464,8 +460,7 @@ export const teams: Team[] = [
       location: { lat: 41.6444, lng: -4.7614 },
       distanceToCenter: "3 km",
     },
-    badge: "/placeholder.svg?height=100&width=100",
-    history: "Club castellano con tradición en Primera División, conocido por su afición fiel.",
+    badge: "/real-valladolid-football-badge-purple-white.jpg",
     cityInfo: {
       description: "Capital de Castilla y León, ciudad universitaria con rico patrimonio histórico y cultural.",
       climate: "Continental (2-28°C, veranos calurosos)",

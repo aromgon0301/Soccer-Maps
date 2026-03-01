@@ -1,6 +1,5 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { reportError, reportSuccess } from "@/lib/client-feedback"
 
 export type PostCategory = "aviso" | "recomendacion" | "ambiente" | "visitantes"
 
@@ -61,11 +60,9 @@ interface CommunityState {
   posts: CommunityPost[]
 
   // Actions
-  createPost: (
-    post: Omit<CommunityPost, "id" | "createdAt" | "likes" | "likedBy" | "replies">
-  ) => Promise<CommunityPost | null>
-  toggleLikePost: (postId: string, userId: string) => Promise<void>
-  addReply: (postId: string, reply: Omit<Reply, "id" | "createdAt" | "likes" | "likedBy">) => Promise<void>
+  createPost: (post: Omit<CommunityPost, "id" | "createdAt" | "likes" | "likedBy" | "replies">) => CommunityPost
+  toggleLikePost: (postId: string, userId: string) => void
+  addReply: (postId: string, reply: Omit<Reply, "id" | "createdAt" | "likes" | "likedBy">) => void
   toggleLikeReply: (postId: string, replyId: string, userId: string) => void
   getPostsByTeam: (teamId: string) => CommunityPost[]
   getPostsByCategory: (category: PostCategory) => CommunityPost[]
@@ -221,8 +218,8 @@ export const useCommunityStore = create<CommunityState>()(
     (set, get) => ({
       posts: INITIAL_POSTS,
 
-      createPost: async (postData) => {
-        const optimisticPost: CommunityPost = {
+      createPost: (postData) => {
+        const post: CommunityPost = {
           ...postData,
           id: `post-${Date.now()}`,
           likes: 0,
@@ -231,47 +228,14 @@ export const useCommunityStore = create<CommunityState>()(
           createdAt: new Date().toISOString(),
         }
 
-        set((state) => ({ posts: [optimisticPost, ...state.posts] }))
+        set((state) => ({
+          posts: [post, ...state.posts],
+        }))
 
-        try {
-          const response = await fetch("/api/community", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(postData),
-          })
-
-          if (!response.ok) {
-            reportError("Publicación no persistida", {
-              detail: "Se creó localmente, pero no se guardó en base de datos",
-              context: { status: response.status, userId: postData.userId },
-            })
-            return optimisticPost
-          }
-
-          const data = await response.json()
-          const serverPost = data?.post as CommunityPost
-          if (serverPost) {
-            set((state) => ({
-              posts: state.posts.map((p) => (p.id === optimisticPost.id ? serverPost : p)),
-            }))
-            reportSuccess("Publicación guardada", {
-              detail: "Tu publicación se guardó en base de datos",
-              context: { postId: serverPost.id, userId: postData.userId },
-            })
-            return serverPost
-          }
-
-          return optimisticPost
-        } catch {
-          reportError("Publicación fallida", {
-            detail: "Error de red al guardar publicación",
-            context: { userId: postData.userId },
-          })
-          return optimisticPost
-        }
+        return post
       },
 
-      toggleLikePost: async (postId, userId) => {
+      toggleLikePost: (postId, userId) => {
         set((state) => ({
           posts: state.posts.map((post) => {
             if (post.id !== postId) return post
@@ -283,43 +247,9 @@ export const useCommunityStore = create<CommunityState>()(
             }
           }),
         }))
-
-        try {
-          const response = await fetch(`/api/community/${postId}/like`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId }),
-          })
-
-          if (!response.ok) {
-            reportError("Like no persistido", {
-              detail: "Se actualizó localmente, pero no en base de datos",
-              context: { status: response.status, postId, userId },
-            })
-            return
-          }
-          const data = await response.json()
-          const serverPost = data?.post as CommunityPost | undefined
-
-          if (serverPost) {
-            set((state) => ({
-              posts: state.posts.map((post) => (post.id === postId ? serverPost : post)),
-            }))
-            reportSuccess("Like actualizado", {
-              detail: `Acción: ${data?.action || "liked"}`,
-              showToast: false,
-              context: { postId, userId },
-            })
-          }
-        } catch {
-          reportError("Error al actualizar like", {
-            detail: "Error de red al guardar like",
-            context: { postId, userId },
-          })
-        }
       },
 
-      addReply: async (postId, replyData) => {
+      addReply: (postId, replyData) => {
         const reply: Reply = {
           ...replyData,
           id: `reply-${Date.now()}`,
@@ -333,44 +263,6 @@ export const useCommunityStore = create<CommunityState>()(
             post.id === postId ? { ...post, replies: [...post.replies, reply] } : post,
           ),
         }))
-
-        try {
-          const response = await fetch(`/api/community/${postId}/reply`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(replyData),
-          })
-
-          if (!response.ok) {
-            reportError("Respuesta no persistida", {
-              detail: "Se añadió localmente, pero no se guardó en base de datos",
-              context: { status: response.status, postId, userId: replyData.userId },
-            })
-            return
-          }
-          const data = await response.json()
-          const serverReply = data?.reply as Reply | undefined
-          if (!serverReply) return
-
-          set((state) => ({
-            posts: state.posts.map((post) => {
-              if (post.id !== postId) return post
-              return {
-                ...post,
-                replies: post.replies.map((r) => (r.id === reply.id ? serverReply : r)),
-              }
-            }),
-          }))
-          reportSuccess("Respuesta guardada", {
-            detail: "Tu respuesta se guardó en base de datos",
-            context: { postId, replyId: serverReply.id, userId: replyData.userId },
-          })
-        } catch {
-          reportError("Error al guardar respuesta", {
-            detail: "Error de red al responder publicación",
-            context: { postId, userId: replyData.userId },
-          })
-        }
       },
 
       toggleLikeReply: (postId, replyId, userId) => {
@@ -413,11 +305,6 @@ export const useCommunityStore = create<CommunityState>()(
         set((state) => ({
           posts: state.posts.filter((p) => p.id !== postId),
         }))
-        reportSuccess("Publicación eliminada", {
-          detail: "Se eliminó localmente",
-          showToast: false,
-          context: { postId },
-        })
       },
     }),
     {

@@ -158,7 +158,9 @@ export function FanProfile() {
       arrivalPreference: editForm.arrivalPreference,
     })
 
-    setFavoriteTeam(editForm.favoriteTeamId || null)
+    if (editForm.favoriteTeamId) {
+      setFavoriteTeam(editForm.favoriteTeamId)
+    }
 
     setIsSaving(false)
     setIsEditDialogOpen(false)

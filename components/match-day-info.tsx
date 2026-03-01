@@ -131,19 +131,19 @@ export function MatchDayInfo({ team }: { team: Team }) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 bg-accent/10 rounded-lg border border-accent">
-                <div className="font-semibold mb-2">Metro</div>
-                <ul className="space-y-1 text-sm text-muted-foreground">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 bg-accent/10 rounded-lg border border-accent">
+                <div className="font-semibold mb-1.5 sm:mb-2 text-sm">Metro</div>
+                <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                   <li>Antes del partido: cada 5 min</li>
-                  <li>Después del partido: cada 3 min</li>
-                  <li>Último metro: 01:30h</li>
+                  <li>Despues del partido: cada 3 min</li>
+                  <li>Ultimo metro: 01:30h</li>
                 </ul>
               </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="font-semibold mb-2">Autobuses especiales</div>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  <li>Líneas reforzadas: 15, 43, 67</li>
+              <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                <div className="font-semibold mb-1.5 sm:mb-2 text-sm">Autobuses especiales</div>
+                <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground">
+                  <li>Lineas reforzadas: 15, 43, 67</li>
                   <li>Frecuencia: cada 10 min</li>
                   <li>Parada: Puerta Principal</li>
                 </ul>

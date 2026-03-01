@@ -124,7 +124,7 @@ export function ReservationsSystem({ team }: ReservationsSystemProps) {
     setIsLoading(true)
 
     // Create real reservation in store
-    const reservation = await createReservation({
+    const reservation = createReservation({
       userId: profile.id,
       userName: reservationData.name,
       userEmail: reservationData.email,

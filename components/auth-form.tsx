@@ -26,6 +26,7 @@ import {
 import { useAuthStore } from "@/lib/stores/auth-store"
 import { useUserStore } from "@/lib/stores/user-store"
 import { teams } from "@/lib/teams-data"
+import { useI18n } from "@/lib/i18n"
 
 interface AuthFormProps {
   mode: "register" | "login"
@@ -33,6 +34,7 @@ interface AuthFormProps {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter()
+  const { t } = useI18n()
   const { register, login, isLoading, error, clearError } = useAuthStore()
   const { initializeUser, updateProfile, setFavoriteTeam } = useUserStore()
 
@@ -40,7 +42,6 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  // Form state
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -49,33 +50,27 @@ export function AuthForm({ mode }: AuthFormProps) {
     favoriteTeamId: "",
   })
 
-  // Validation state
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {}
-
     if (mode === "register") {
       if (!form.name.trim()) errors.name = "El nombre es obligatorio"
       if (form.name.trim().length < 2) errors.name = "El nombre debe tener al menos 2 caracteres"
     }
-
     if (!form.email.trim()) {
       errors.email = "El email es obligatorio"
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errors.email = "Introduce un email valido"
     }
-
     if (!form.password) {
       errors.password = "La contrasena es obligatoria"
     } else if (form.password.length < 6) {
       errors.password = "Minimo 6 caracteres"
     }
-
     if (mode === "register" && form.password !== form.confirmPassword) {
       errors.confirmPassword = "Las contrasenas no coinciden"
     }
-
     setValidationErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -83,37 +78,23 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     clearError()
-
     if (!validate()) return
 
     if (mode === "register") {
       const result = await register(form.name, form.email, form.password)
-
       if (result.success) {
-        // Initialize user profile and sync
         initializeUser()
-        updateProfile({
-          name: form.name,
-          email: form.email,
-        })
-        if (form.favoriteTeamId) {
-          setFavoriteTeam(form.favoriteTeamId)
-        }
-
+        updateProfile({ name: form.name, email: form.email })
+        if (form.favoriteTeamId) setFavoriteTeam(form.favoriteTeamId)
         setSuccess(true)
-        setTimeout(() => {
-          router.push("/profile")
-        }, 1200)
+        setTimeout(() => router.push("/profile"), 1200)
       }
     } else {
       const result = await login(form.email, form.password)
-
       if (result.success) {
         initializeUser()
         setSuccess(true)
-        setTimeout(() => {
-          router.push("/")
-        }, 800)
+        setTimeout(() => router.push("/"), 800)
       }
     }
   }
@@ -121,11 +102,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const updateForm = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (validationErrors[field]) {
-      setValidationErrors((prev) => {
-        const next = { ...prev }
-        delete next[field]
-        return next
-      })
+      setValidationErrors((prev) => { const next = { ...prev }; delete next[field]; return next })
     }
     if (error) clearError()
   }
@@ -133,75 +110,62 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header bar */}
-      <header className="bg-primary text-primary-foreground py-3">
-        <div className="container mx-auto px-4">
-          <Link href="/" className="flex items-center gap-3 group w-fit">
-            <div className="w-10 h-10 relative flex-shrink-0">
-              <Image
-                src="/logo-soccer-maps.png"
-                alt="Soccer Maps Logo"
-                fill
-                className="object-contain rounded-lg"
-                priority
-              />
+      <header className="bg-primary text-primary-foreground py-2.5 sm:py-3">
+        <div className="container mx-auto px-3 sm:px-4">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group w-fit">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
+              <Image src="/logo-soccer-maps.png" alt="Soccer Maps Logo" fill className="object-contain rounded-lg" priority />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight group-hover:text-accent transition-colors font-sans">
+              <h1 className="text-base sm:text-xl font-bold tracking-tight group-hover:text-accent transition-colors font-sans">
                 Soccer Maps
               </h1>
-              <p className="text-xs text-primary-foreground/80">La Liga</p>
+              <p className="text-[10px] sm:text-xs text-primary-foreground/80">La Liga</p>
             </div>
           </Link>
         </div>
       </header>
 
       {/* Main form */}
-      <main className="flex-1 flex items-center justify-center py-8 px-4">
+      <main className="flex-1 flex items-center justify-center py-6 sm:py-8 px-3 sm:px-4">
         <Card className="w-full max-w-md">
-          <CardHeader className="text-center pb-2">
-            <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
+          <CardHeader className="text-center pb-2 px-4 sm:px-6">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
               {mode === "register" ? (
-                <UserPlus className="w-8 h-8 text-accent" />
+                <UserPlus className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
               ) : (
-                <LogIn className="w-8 h-8 text-accent" />
+                <LogIn className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
               )}
             </div>
-            <CardTitle className="text-2xl font-bold">
-              {mode === "register" ? "Crear Cuenta" : "Iniciar Sesion"}
+            <CardTitle className="text-xl sm:text-2xl font-bold">
+              {mode === "register" ? t("createAccountTitle") : t("signIn")}
             </CardTitle>
-            <CardDescription>
-              {mode === "register"
-                ? "Unete a la comunidad de Soccer Maps"
-                : "Accede a tu cuenta de Soccer Maps"}
+            <CardDescription className="text-xs sm:text-sm">
+              {mode === "register" ? t("createAccountDesc") : t("signInDesc")}
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
-            {/* Success message */}
+          <CardContent className="px-4 sm:px-6">
             {success && (
-              <Alert className="mb-4 border-accent bg-accent/10">
+              <Alert className="mb-3 sm:mb-4 border-accent bg-accent/10">
                 <CheckCircle2 className="h-4 w-4 text-accent" />
-                <AlertDescription className="text-accent">
-                  {mode === "register"
-                    ? "Cuenta creada correctamente. Redirigiendo..."
-                    : "Sesion iniciada. Redirigiendo..."}
+                <AlertDescription className="text-accent text-xs sm:text-sm">
+                  {mode === "register" ? t("accountCreatedSuccess") : t("signedInSuccess")}
                 </AlertDescription>
               </Alert>
             )}
 
-            {/* Error message from store */}
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert variant="destructive" className="mb-3 sm:mb-4">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="text-xs sm:text-sm">{error}</AlertDescription>
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name field (register only) */}
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {mode === "register" && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="name" className="text-sm">{t("name")}</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -210,20 +174,17 @@ export function AuthForm({ mode }: AuthFormProps) {
                       placeholder="Tu nombre"
                       value={form.name}
                       onChange={(e) => updateForm("name", e.target.value)}
-                      className={`pl-10 ${validationErrors.name ? "border-destructive" : ""}`}
+                      className={`pl-10 text-sm ${validationErrors.name ? "border-destructive" : ""}`}
                       disabled={isLoading || success}
                       autoComplete="name"
                     />
                   </div>
-                  {validationErrors.name && (
-                    <p className="text-xs text-destructive">{validationErrors.name}</p>
-                  )}
+                  {validationErrors.name && <p className="text-xs text-destructive">{validationErrors.name}</p>}
                 </div>
               )}
 
-              {/* Email field */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="email" className="text-sm">{t("email")}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -232,21 +193,16 @@ export function AuthForm({ mode }: AuthFormProps) {
                     placeholder="tu@email.com"
                     value={form.email}
                     onChange={(e) => updateForm("email", e.target.value)}
-                    className={`pl-10 ${validationErrors.email ? "border-destructive" : ""}`}
+                    className={`pl-10 text-sm ${validationErrors.email ? "border-destructive" : ""}`}
                     disabled={isLoading || success}
                     autoComplete="email"
                   />
                 </div>
-                {validationErrors.email && (
-                  <p className="text-xs text-destructive">{validationErrors.email}</p>
-                )}
+                {validationErrors.email && <p className="text-xs text-destructive">{validationErrors.email}</p>}
               </div>
 
-              {/* Password field */}
-              <div className="space-y-2">
-                <Label htmlFor="password">
-                  {mode === "register" ? "Contrasena" : "Contrasena"}
-                </Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="password" className="text-sm">{t("password")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -255,7 +211,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     placeholder={mode === "register" ? "Minimo 6 caracteres" : "Tu contrasena"}
                     value={form.password}
                     onChange={(e) => updateForm("password", e.target.value)}
-                    className={`pl-10 pr-10 ${validationErrors.password ? "border-destructive" : ""}`}
+                    className={`pl-10 pr-10 text-sm ${validationErrors.password ? "border-destructive" : ""}`}
                     disabled={isLoading || success}
                     autoComplete={mode === "register" ? "new-password" : "current-password"}
                   />
@@ -269,15 +225,12 @@ export function AuthForm({ mode }: AuthFormProps) {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {validationErrors.password && (
-                  <p className="text-xs text-destructive">{validationErrors.password}</p>
-                )}
+                {validationErrors.password && <p className="text-xs text-destructive">{validationErrors.password}</p>}
               </div>
 
-              {/* Confirm Password (register only) */}
               {mode === "register" && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar Contrasena</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-sm">{t("confirmPassword")}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -286,7 +239,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                       placeholder="Repite tu contrasena"
                       value={form.confirmPassword}
                       onChange={(e) => updateForm("confirmPassword", e.target.value)}
-                      className={`pl-10 pr-10 ${validationErrors.confirmPassword ? "border-destructive" : ""}`}
+                      className={`pl-10 pr-10 text-sm ${validationErrors.confirmPassword ? "border-destructive" : ""}`}
                       disabled={isLoading || success}
                       autoComplete="new-password"
                     />
@@ -300,27 +253,20 @@ export function AuthForm({ mode }: AuthFormProps) {
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {validationErrors.confirmPassword && (
-                    <p className="text-xs text-destructive">{validationErrors.confirmPassword}</p>
-                  )}
+                  {validationErrors.confirmPassword && <p className="text-xs text-destructive">{validationErrors.confirmPassword}</p>}
                 </div>
               )}
 
-              {/* Favorite Team (register only) */}
               {mode === "register" && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="flex items-center gap-1.5 text-sm">
                     <Heart className="w-3.5 h-3.5 text-accent" />
-                    Equipo Favorito
-                    <span className="text-muted-foreground text-xs">(opcional)</span>
+                    {t("favoriteTeam")}
+                    <span className="text-muted-foreground text-xs">({t("optional")})</span>
                   </Label>
-                  <Select
-                    value={form.favoriteTeamId}
-                    onValueChange={(v) => updateForm("favoriteTeamId", v)}
-                    disabled={isLoading || success}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu equipo" />
+                  <Select value={form.favoriteTeamId} onValueChange={(v) => updateForm("favoriteTeamId", v)} disabled={isLoading || success}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder={t("selectTeamPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {teams.map((team) => (
@@ -333,38 +279,36 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </div>
               )}
 
-              {/* Submit button */}
               <Button
                 type="submit"
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mt-1 sm:mt-2"
                 disabled={isLoading || success}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {mode === "register" ? "Creando cuenta..." : "Iniciando sesion..."}
+                    {mode === "register" ? t("creatingAccount") : t("signingIn")}
                   </>
                 ) : success ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 mr-2" />
-                    {mode === "register" ? "Cuenta creada" : "Sesion iniciada"}
+                    {mode === "register" ? t("accountCreated") : t("signedIn")}
                   </>
                 ) : mode === "register" ? (
                   <>
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Crear Cuenta
+                    {t("createAccountBtn")}
                   </>
                 ) : (
                   <>
                     <LogIn className="w-4 h-4 mr-2" />
-                    Iniciar Sesion
+                    {t("signInBtn")}
                   </>
                 )}
               </Button>
             </form>
 
-            {/* Divider */}
-            <div className="relative my-6">
+            <div className="relative my-4 sm:my-6">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-border" />
               </div>
@@ -373,26 +317,19 @@ export function AuthForm({ mode }: AuthFormProps) {
               </div>
             </div>
 
-            {/* Switch mode link */}
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-xs sm:text-sm text-muted-foreground">
               {mode === "register" ? (
                 <>
-                  {"Ya tienes cuenta? "}
-                  <Link
-                    href="/login"
-                    className="font-semibold text-accent hover:underline"
-                  >
-                    Inicia sesion
+                  {t("hasAccount")}{" "}
+                  <Link href="/login" className="font-semibold text-accent hover:underline">
+                    {t("signInLink")}
                   </Link>
                 </>
               ) : (
                 <>
-                  {"No tienes cuenta? "}
-                  <Link
-                    href="/registro"
-                    className="font-semibold text-accent hover:underline"
-                  >
-                    Registrate gratis
+                  {t("noAccount")}{" "}
+                  <Link href="/registro" className="font-semibold text-accent hover:underline">
+                    {t("registerFreeLink")}
                   </Link>
                 </>
               )}

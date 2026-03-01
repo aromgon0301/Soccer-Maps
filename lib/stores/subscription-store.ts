@@ -1,6 +1,5 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { reportError, reportSuccess } from "@/lib/client-feedback"
 
 export type PlanType = "free" | "fan" | "ultra"
 
@@ -175,11 +174,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
 
       startCheckout: async (plan, billingCycle) => {
         set({ isLoading: true })
-        reportSuccess("Inicio de checkout", {
-          detail: `Plan ${plan} (${billingCycle})`,
-          showToast: false,
-          context: { plan, billingCycle },
-        })
 
         try {
           const response = await fetch("/api/stripe/checkout", {
@@ -189,10 +183,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
           })
 
           if (!response.ok) {
-            reportError("Checkout fallido", {
-              detail: "No se pudo crear sesión de pago",
-              context: { plan, billingCycle, status: response.status },
-            })
             throw new Error("Failed to create checkout session")
           }
 
@@ -200,19 +190,12 @@ export const useSubscriptionStore = create<SubscriptionState>()(
           set({ checkoutSessionId: sessionId })
 
           if (url) {
-            reportSuccess("Checkout creado", {
-              detail: "Redirigiendo a pasarela de pago",
-              context: { sessionId },
-            })
             window.location.href = url
           }
 
           return sessionId
         } catch (error) {
-          reportError("Error en checkout", {
-            detail: "No se pudo iniciar el proceso de pago",
-            context: { plan, billingCycle, error: String(error) },
-          })
+          console.error("Checkout error:", error)
           throw error
         } finally {
           set({ isLoading: false })
@@ -241,10 +224,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         }
 
         set({ subscription })
-        reportSuccess("Suscripción demo activada", {
-          detail: `Plan ${plan} (${billingCycle})`,
-          context: { plan, billingCycle },
-        })
       },
 
       subscribeToPlan: async (plan, billingCycle) => {
@@ -260,26 +239,14 @@ export const useSubscriptionStore = create<SubscriptionState>()(
           if (response.ok) {
             const { url } = await response.json()
             if (url) {
-              reportSuccess("Checkout listo", {
-                detail: "Redirigiendo al pago",
-                context: { plan, billingCycle },
-              })
               window.location.href = url
               return
             }
           }
 
           get().simulateSubscription(plan, billingCycle)
-          reportSuccess("Suscripción simulada", {
-            detail: "Stripe no devolvió URL, activada en modo demo",
-            context: { plan, billingCycle },
-          })
         } catch {
           get().simulateSubscription(plan, billingCycle)
-          reportError("Error en suscripción", {
-            detail: "Fallo en Stripe, aplicado modo demo",
-            context: { plan, billingCycle },
-          })
         } finally {
           set({ isLoading: false })
         }
@@ -307,10 +274,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                 cancelAtPeriodEnd: true,
               },
             })
-            reportSuccess("Suscripción cancelada", {
-              detail: "Se cancelará al final del periodo",
-              context: { subscriptionId: subscription.id },
-            })
             return
           }
 
@@ -319,10 +282,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
               ...subscription,
               cancelAtPeriodEnd: true,
             },
-          })
-          reportError("Cancelación no persistida", {
-            detail: "Actualizada localmente pero no confirmada por servidor",
-            context: { subscriptionId: subscription.id, status: response.status },
           })
         } finally {
           set({ isLoading: false })
@@ -351,10 +310,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                 cancelAtPeriodEnd: false,
               },
             })
-            reportSuccess("Suscripción reactivada", {
-              detail: "La cancelación programada fue retirada",
-              context: { subscriptionId: subscription.id },
-            })
             return
           }
 
@@ -363,10 +318,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
               ...subscription,
               cancelAtPeriodEnd: false,
             },
-          })
-          reportError("Reactivación no persistida", {
-            detail: "Actualizada localmente pero no confirmada por servidor",
-            context: { subscriptionId: subscription.id, status: response.status },
           })
         } finally {
           set({ isLoading: false })

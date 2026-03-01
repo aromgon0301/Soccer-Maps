@@ -1,62 +1,98 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDb } from "@/lib/mongodb"
-import { communityPostSchema } from "@/lib/validation"
-import { logApiError, logApiSuccess } from "@/lib/server-logger"
+
+// Sample posts - in production use a real database
+const posts = [
+  {
+    id: "post-1",
+    userId: "user-sample-1",
+    userName: "Carlos M.",
+    userLevel: 4,
+    content:
+      "El Bar Los Aficionados cerca del estadio es increíble. Precios buenos y ambiente genial antes del partido.",
+    category: "recomendacion",
+    rating: 5,
+    teamId: "barcelona",
+    teamName: "FC Barcelona",
+    likes: 24,
+    likedBy: [] as string[],
+    replies: [
+      {
+        id: "reply-1",
+        userId: "user-sample-2",
+        userName: "Laura P.",
+        content: "Totalmente de acuerdo! El personal es muy amable.",
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        likes: 5,
+        likedBy: [] as string[],
+      },
+    ],
+    createdAt: new Date(Date.now() - 172800000).toISOString(),
+  },
+  {
+    id: "post-2",
+    userId: "user-sample-2",
+    userName: "María G.",
+    userLevel: 3,
+    content: "Recomiendo llegar 1 hora antes. El acceso norte es el más rápido, casi sin colas.",
+    category: "aviso",
+    teamId: "barcelona",
+    teamName: "FC Barcelona",
+    likes: 18,
+    likedBy: [] as string[],
+    replies: [],
+    createdAt: new Date(Date.now() - 432000000).toISOString(),
+  },
+  {
+    id: "post-3",
+    userId: "user-sample-3",
+    userName: "Javier R.",
+    userLevel: 5,
+    content: "Parking Sur es la mejor opción. Un poco más caro pero muy cerca y sin esperas para salir.",
+    category: "recomendacion",
+    rating: 4,
+    teamId: "real-madrid",
+    teamName: "Real Madrid",
+    likes: 12,
+    likedBy: [] as string[],
+    replies: [],
+    createdAt: new Date(Date.now() - 604800000).toISOString(),
+  },
+]
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const teamId = searchParams.get("teamId")
-    const category = searchParams.get("category")
+  const { searchParams } = new URL(request.url)
+  const teamId = searchParams.get("teamId")
+  const category = searchParams.get("category")
 
-    const filter: Record<string, unknown> = {}
-    if (teamId) filter.teamId = teamId
-    if (category) filter.category = category
+  let filtered = posts
 
-    const db = await getDb()
-    const posts = await db
-      .collection("community_posts")
-      .find(filter, { projection: { _id: 0 } })
-      .sort({ createdAt: -1 })
-      .toArray()
-
-    logApiSuccess("/api/community", "GET", { count: posts.length, filter })
-
-    return NextResponse.json({ posts })
-  } catch (error) {
-    logApiError("/api/community", "GET", error)
-    return NextResponse.json({ error: "Failed to load posts" }, { status: 500 })
+  if (teamId) {
+    filtered = filtered.filter((p) => p.teamId === teamId)
   }
+
+  if (category) {
+    filtered = filtered.filter((p) => p.category === category)
+  }
+
+  // Sort by most recent
+  filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  return NextResponse.json({ posts: filtered })
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const parsed = communityPostSchema.safeParse(body)
+  const body = await request.json()
 
-    if (!parsed.success) {
-      const message = parsed.error.issues[0]?.message || "Invalid post payload"
-      logApiError("/api/community", "POST_VALIDATION", message, { payload: body })
-      return NextResponse.json({ error: message }, { status: 400 })
-    }
-
-    const post = {
-      id: `post-${crypto.randomUUID()}`,
-      ...parsed.data,
-      likes: 0,
-      likedBy: [],
-      replies: [],
-      createdAt: new Date().toISOString(),
-    }
-
-    const db = await getDb()
-    await db.collection("community_posts").insertOne(post)
-
-    logApiSuccess("/api/community", "POST", { postId: post.id, userId: post.userId })
-
-    return NextResponse.json({ post, success: true })
-  } catch (error) {
-    logApiError("/api/community", "POST", error)
-    return NextResponse.json({ error: "Failed to create post" }, { status: 500 })
+  const post = {
+    id: `post-${Date.now()}`,
+    ...body,
+    likes: 0,
+    likedBy: [],
+    replies: [],
+    createdAt: new Date().toISOString(),
   }
+
+  posts.unshift(post)
+
+  return NextResponse.json({ post, success: true })
 }

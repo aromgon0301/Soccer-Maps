@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { Inter, Montserrat } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
+import { ThemeProvider } from "@/lib/theme"
+import { I18nProvider } from "@/lib/i18n"
 import "./globals.css"
 
 const _inter = Inter({ subsets: ["latin"] })
@@ -37,11 +39,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es">
-      <body className={`font-sans antialiased`}>
-        {children}
-        <Toaster />
-        <Analytics />
+    <html lang="es" suppressHydrationWarning>
+      <body className="font-sans antialiased">
+        <ThemeProvider>
+          <I18nProvider>
+            {children}
+            <Toaster />
+            <Analytics />
+          </I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

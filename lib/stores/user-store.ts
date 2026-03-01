@@ -1,6 +1,5 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { reportError, reportSuccess } from "@/lib/client-feedback"
 
 export type FanType = "familiar" | "visitante" | "ultra" | "turista"
 export type TransportPreference = "metro" | "bus" | "coche" | "andando"
@@ -44,7 +43,7 @@ interface UserState {
   // Actions
   initializeUser: () => void
   updateProfile: (updates: Partial<UserProfile>) => void
-  setFavoriteTeam: (teamId: string | null) => void
+  setFavoriteTeam: (teamId: string) => void
   addStadiumVisit: (visit: Omit<StadiumVisit, "id">) => void
   toggleFavoritePoi: (poiId: string) => void
   addExperience: (amount: number) => void
@@ -78,126 +77,47 @@ export const useUserStore = create<UserState>()(
       favoritePois: [],
       isInitialized: false,
 
-      
-
       initializeUser: () => {
         const state = get()
-        if (state.isInitialized && state.profile) return
-
-        let authData: { id?: string; name?: string; email?: string } = {}
-        try {
-          const raw = typeof window !== "undefined" ? localStorage.getItem("soccer-maps-auth") : null
-          if (raw) {
-            const parsed = JSON.parse(raw)
-            if (parsed?.state?.currentUser) {
-              authData = parsed.state.currentUser
-            }
-          }
-        } catch {
-          // ignore parse errors
-        }
-
-        const fallbackProfile: UserProfile = {
-          ...DEFAULT_PROFILE,
-          id: authData.id || state.profile?.id || `user-${Date.now()}`,
-          name: authData.name || state.profile?.name || DEFAULT_PROFILE.name,
-          email: authData.email || state.profile?.email || DEFAULT_PROFILE.email,
-        }
-
-        void (async () => {
+        if (!state.profile) {
+          // Try to get auth user info
+          let authData: { id?: string; name?: string; email?: string } = {}
           try {
-            const response = await fetch(`/api/profile?userId=${encodeURIComponent(fallbackProfile.id)}`)
-            if (!response.ok) {
-              reportError("Carga de perfil remota fallida", {
-                detail: "Se usará perfil local temporal",
-                context: { status: response.status, userId: fallbackProfile.id },
-              })
-              set({ profile: fallbackProfile, isInitialized: true })
-              return
+            const raw = typeof window !== "undefined" ? localStorage.getItem("soccer-maps-auth") : null
+            if (raw) {
+              const parsed = JSON.parse(raw)
+              if (parsed?.state?.currentUser) {
+                authData = parsed.state.currentUser
+              }
             }
-
-            const data = await response.json()
-            set({
-              profile: data.profile || fallbackProfile,
-              isInitialized: true,
-            })
-
-            reportSuccess("Perfil cargado", {
-              detail: "Perfil sincronizado correctamente",
-              showToast: false,
-              context: { userId: fallbackProfile.id },
-            })
           } catch {
-            reportError("Carga de perfil fallida", {
-              detail: "Se usará perfil local temporal",
-              context: { userId: fallbackProfile.id },
-            })
-            set({ profile: fallbackProfile, isInitialized: true })
+            // ignore parse errors
           }
-        })()
+
+          set({
+            profile: {
+              ...DEFAULT_PROFILE,
+              id: authData.id || `user-${Date.now()}`,
+              name: authData.name || DEFAULT_PROFILE.name,
+              email: authData.email || DEFAULT_PROFILE.email,
+            },
+            isInitialized: true,
+          })
+        } else {
+          set({ isInitialized: true })
+        }
       },
 
       updateProfile: (updates) => {
-        const current = get().profile
-        if (!current) return
-
-        const next = { ...current, ...updates }
-        set({ profile: next })
-
-        void fetch("/api/profile", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: next.id, ...updates }),
-        }).then((response) => {
-          if (!response.ok) {
-            reportError("No se pudo guardar el perfil", {
-              detail: "Los cambios locales no se persistieron en base de datos",
-              context: { status: response.status, userId: next.id },
-            })
-            return
-          }
-
-          reportSuccess("Perfil guardado", {
-            detail: "Cambios persistidos en base de datos",
-            context: { userId: next.id },
-          })
-        }).catch(() => {
-          reportError("No se pudo guardar el perfil", {
-            detail: "Error de red al persistir cambios",
-            context: { userId: next.id },
-          })
-        })
+        set((state) => ({
+          profile: state.profile ? { ...state.profile, ...updates } : null,
+        }))
       },
 
       setFavoriteTeam: (teamId) => {
-        const profile = get().profile
-        if (!profile) return
-
-        set({ profile: { ...profile, favoriteTeamId: teamId } })
-
-        void fetch("/api/profile", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: profile.id, favoriteTeamId: teamId }),
-        }).then((response) => {
-          if (!response.ok) {
-            reportError("No se pudo guardar equipo favorito", {
-              detail: "El cambio no se persistió en base de datos",
-              context: { status: response.status, userId: profile.id, favoriteTeamId: teamId },
-            })
-            return
-          }
-
-          reportSuccess("Equipo favorito actualizado", {
-            detail: "Cambio guardado correctamente",
-            context: { userId: profile.id, favoriteTeamId: teamId },
-          })
-        }).catch(() => {
-          reportError("No se pudo guardar equipo favorito", {
-            detail: "Error de red al persistir cambio",
-            context: { userId: profile.id, favoriteTeamId: teamId },
-          })
-        })
+        set((state) => ({
+          profile: state.profile ? { ...state.profile, favoriteTeamId: teamId } : null,
+        }))
       },
 
       addStadiumVisit: (visit) => {
@@ -232,28 +152,6 @@ export const useUserStore = create<UserState>()(
               : null,
           }
         })
-
-        const nextProfile = get().profile
-        if (nextProfile) {
-          void fetch("/api/profile", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: nextProfile.id, ...nextProfile }),
-          }).then((response) => {
-            if (!response.ok) {
-              reportError("No se pudo guardar visita de estadio", {
-                detail: "Los avances no se persistieron",
-                context: { status: response.status, userId: nextProfile.id },
-              })
-              return
-            }
-
-            reportSuccess("Visita guardada", {
-              detail: "Progreso del aficionado actualizado",
-              context: { userId: nextProfile.id },
-            })
-          })
-        }
       },
 
       toggleFavoritePoi: (poiId) => {
@@ -262,12 +160,6 @@ export const useUserStore = create<UserState>()(
             ? state.favoritePois.filter((id) => id !== poiId)
             : [...state.favoritePois, poiId],
         }))
-
-        reportSuccess("Favoritos actualizados", {
-          detail: "Se actualizó tu lista de locales favoritos",
-          showToast: false,
-          context: { poiId },
-        })
       },
 
       addExperience: (amount) => {
@@ -283,22 +175,6 @@ export const useUserStore = create<UserState>()(
             },
           }
         })
-
-        const nextProfile = get().profile
-        if (nextProfile) {
-          void fetch("/api/profile", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: nextProfile.id, experience: nextProfile.experience, level: nextProfile.level }),
-          }).then((response) => {
-            if (!response.ok) {
-              reportError("No se pudo guardar experiencia", {
-                detail: "El progreso quedó solo en memoria local",
-                context: { status: response.status, userId: nextProfile.id },
-              })
-            }
-          })
-        }
       },
 
       unlockBadge: (badgeId) => {
@@ -308,44 +184,12 @@ export const useUserStore = create<UserState>()(
               ? { ...state.profile, badges: [...state.profile.badges, badgeId] }
               : state.profile,
         }))
-
-        const nextProfile = get().profile
-        if (nextProfile) {
-          void fetch("/api/profile", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: nextProfile.id, badges: nextProfile.badges }),
-          }).then((response) => {
-            if (!response.ok) {
-              reportError("No se pudo guardar insignias", {
-                detail: "Los cambios no se persistieron",
-                context: { status: response.status, userId: nextProfile.id },
-              })
-            }
-          })
-        }
       },
 
       incrementReviews: () => {
         set((state) => ({
           profile: state.profile ? { ...state.profile, reviewsWritten: state.profile.reviewsWritten + 1 } : null,
         }))
-
-        const nextProfile = get().profile
-        if (nextProfile) {
-          void fetch("/api/profile", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: nextProfile.id, reviewsWritten: nextProfile.reviewsWritten }),
-          }).then((response) => {
-            if (!response.ok) {
-              reportError("No se pudo guardar contador de reseñas", {
-                detail: "El cambio no se persistió",
-                context: { status: response.status, userId: nextProfile.id },
-              })
-            }
-          })
-        }
       },
     }),
     {

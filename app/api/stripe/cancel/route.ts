@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { logApiError, logApiSuccess } from "@/lib/server-logger"
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +7,6 @@ export async function POST(request: NextRequest) {
 
     if (!stripeSecretKey) {
       // Demo mode
-      logApiSuccess("/api/stripe/cancel", "DEMO", { subscriptionId })
       return NextResponse.json({ success: true, demo: true })
     }
 
@@ -19,11 +17,9 @@ export async function POST(request: NextRequest) {
       cancel_at_period_end: true,
     })
 
-    logApiSuccess("/api/stripe/cancel", "POST", { subscriptionId })
-
     return NextResponse.json({ success: true })
   } catch (error) {
-    logApiError("/api/stripe/cancel", "POST", error)
+    console.error("Cancel subscription error:", error)
     return NextResponse.json({ error: "Failed to cancel subscription" }, { status: 500 })
   }
 }

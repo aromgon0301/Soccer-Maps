@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { logApiError, logApiSuccess } from "@/lib/server-logger"
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,7 +6,6 @@ export async function POST(request: NextRequest) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
     if (!stripeSecretKey || !webhookSecret) {
-      logApiError("/api/stripe/webhook", "CONFIG", "Stripe not configured")
       return NextResponse.json({ error: "Stripe not configured" }, { status: 400 })
     }
 
@@ -18,7 +16,6 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get("stripe-signature")
 
     if (!signature) {
-      logApiError("/api/stripe/webhook", "VALIDATION", "Missing signature")
       return NextResponse.json({ error: "Missing signature" }, { status: 400 })
     }
 
@@ -27,32 +24,25 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object
-        logApiSuccess("/api/stripe/webhook", "checkout.session.completed", {
-          subscriptionId: session.subscription,
-        })
+        // Handle successful subscription
+        console.log("Subscription created:", session.subscription)
         break
       }
       case "customer.subscription.updated": {
         const subscription = event.data.object
-        logApiSuccess("/api/stripe/webhook", "customer.subscription.updated", {
-          subscriptionId: subscription.id,
-        })
+        console.log("Subscription updated:", subscription.id)
         break
       }
       case "customer.subscription.deleted": {
         const subscription = event.data.object
-        logApiSuccess("/api/stripe/webhook", "customer.subscription.deleted", {
-          subscriptionId: subscription.id,
-        })
+        console.log("Subscription cancelled:", subscription.id)
         break
       }
     }
 
-    logApiSuccess("/api/stripe/webhook", "POST", { eventType: event.type })
-
     return NextResponse.json({ received: true })
   } catch (error) {
-    logApiError("/api/stripe/webhook", "POST", error)
+    console.error("Webhook error:", error)
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 })
   }
 }

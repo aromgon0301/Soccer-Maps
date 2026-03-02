@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { logApiError, logApiSuccess } from "@/lib/server-logger"
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +9,6 @@ export async function POST(request: NextRequest) {
 
     if (!stripeSecretKey) {
       // Return demo mode response
-      logApiSuccess("/api/stripe/checkout", "DEMO", { plan, billingCycle })
       return NextResponse.json({
         demo: true,
         message: "Stripe not configured - using demo mode",
@@ -38,7 +36,6 @@ export async function POST(request: NextRequest) {
     const priceId = priceIds[plan]?.[billingCycle]
 
     if (!priceId) {
-      logApiError("/api/stripe/checkout", "VALIDATION", "Invalid plan or billing cycle", { plan, billingCycle })
       return NextResponse.json({ error: "Invalid plan or billing cycle" }, { status: 400 })
     }
 
@@ -59,18 +56,12 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    logApiSuccess("/api/stripe/checkout", "POST", {
-      plan,
-      billingCycle,
-      sessionId: session.id,
-    })
-
     return NextResponse.json({
       sessionId: session.id,
       url: session.url,
     })
   } catch (error) {
-    logApiError("/api/stripe/checkout", "POST", error)
+    console.error("Stripe checkout error:", error)
     return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
   }
 }

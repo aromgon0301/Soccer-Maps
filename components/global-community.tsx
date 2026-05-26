@@ -29,15 +29,14 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react"
-import { useI18n } from "@/lib/i18n"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-const CATEGORY_CONFIG: Record<PostCategory, { labelKey: string; icon: React.ElementType; color: string }> = {
-  aviso: { labelKey: "warning", icon: AlertTriangle, color: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
-  recomendacion: { labelKey: "recommendation", icon: Star, color: "bg-accent/10 text-accent border-accent/30" },
-  ambiente: { labelKey: "atmosphere", icon: Users, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
-  visitantes: { labelKey: "visitors", icon: Eye, color: "bg-purple-500/10 text-purple-600 border-purple-500/30" },
+const CATEGORY_CONFIG: Record<PostCategory, { label: string; icon: React.ElementType; color: string }> = {
+  aviso: { label: "Aviso", icon: AlertTriangle, color: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
+  recomendacion: { label: "Recomendación", icon: Star, color: "bg-accent/10 text-accent border-accent/30" },
+  ambiente: { label: "Ambiente", icon: Users, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+  visitantes: { label: "Visitantes", icon: Eye, color: "bg-purple-500/10 text-purple-600 border-purple-500/30" },
 }
 
 function formatTimeAgo(dateString: string): string {
@@ -65,7 +64,6 @@ function PostCard({ post, onLike, onReply, currentUserId }: PostCardProps) {
   const [showReplies, setShowReplies] = useState(false)
   const [replyContent, setReplyContent] = useState("")
   const [isReplying, setIsReplying] = useState(false)
-  const { t } = useI18n()
   const hasLiked = post.likedBy.includes(currentUserId)
   const CategoryIcon = CATEGORY_CONFIG[post.category].icon
 
@@ -259,7 +257,6 @@ function PostCard({ post, onLike, onReply, currentUserId }: PostCardProps) {
 export function GlobalCommunity() {
   const { posts, createPost, toggleLikePost, addReply, getAllPosts } = useCommunityStore()
   const { profile, initializeUser } = useUserStore()
-  const { t } = useI18n()
   const [mounted, setMounted] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [newPostContent, setNewPostContent] = useState("")
@@ -346,12 +343,12 @@ export function GlobalCommunity() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Users className="w-5 h-5 text-accent" />
-              {t("laLigaCommunity")}
+              Comunidad LaLiga
             </CardTitle>
             <Button onClick={() => setIsCreating(!isCreating)} size="sm">
-              {isCreating ? t("cancel") : t("post")}
+              {isCreating ? "Cancelar" : "Publicar"}
             </Button>
           </div>
         </CardHeader>
@@ -360,11 +357,19 @@ export function GlobalCommunity() {
             <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
               {/* Post type selector */}
               <div className="flex gap-2">
-                <Button variant={postType === "general" ? "default" : "outline"} size="sm" onClick={() => setPostType("general")}>
-                  {t("generalLaLiga")}
+                <Button
+                  variant={postType === "general" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPostType("general")}
+                >
+                  General LaLiga
                 </Button>
-                <Button variant={postType === "match" ? "default" : "outline"} size="sm" onClick={() => setPostType("match")}>
-                  {t("specificMatch")}
+                <Button
+                  variant={postType === "match" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPostType("match")}
+                >
+                  Partido específico
                 </Button>
               </div>
 
@@ -419,8 +424,8 @@ export function GlobalCommunity() {
                     return (
                       <SelectItem key={key} value={key}>
                         <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4" />
-            {t(config.labelKey as any)}
+                          <Icon className="w-4 h-4" />
+                          {config.label}
                         </div>
                       </SelectItem>
                     )
@@ -430,11 +435,10 @@ export function GlobalCommunity() {
 
               {/* Content */}
               <Textarea
-                placeholder={t("shareWithCommunity")}
+                placeholder="¿Qué quieres compartir con la comunidad?"
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
                 rows={3}
-                className="text-sm"
               />
 
               <Button
@@ -451,9 +455,13 @@ export function GlobalCommunity() {
       </Card>
 
       {/* Category filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-        <Button variant={categoryFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setCategoryFilter("all")} className="shrink-0">
-          {t("all")}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        <Button
+          variant={categoryFilter === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setCategoryFilter("all")}
+        >
+          Todos
         </Button>
         {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
           const Icon = config.icon
@@ -464,8 +472,8 @@ export function GlobalCommunity() {
               size="sm"
               onClick={() => setCategoryFilter(key as PostCategory)}
             >
-            <Icon className="w-3.5 h-3.5 mr-1" />
-            {t(config.labelKey as any)}
+              <Icon className="w-3.5 h-3.5 mr-1" />
+              {config.label}
             </Button>
           )
         })}
@@ -474,11 +482,11 @@ export function GlobalCommunity() {
       {/* Posts feed */}
       <div className="space-y-3">
         {filteredPosts.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 sm:p-8 text-center text-muted-foreground text-sm">
-                No hay publicaciones aun. Se el primero en compartir!
-              </CardContent>
-            </Card>
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              No hay publicaciones aún. ¡Sé el primero en compartir!
+            </CardContent>
+          </Card>
         ) : (
           filteredPosts.map((post) => (
             <PostCard

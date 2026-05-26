@@ -1,6 +1,12 @@
 export { useAuthStore } from "./auth-store"
 export type { AuthUser } from "./auth-store"
 
+export { useThemeStore } from "./theme-store"
+export type { Theme } from "./theme-store"
+
+export { useI18nStore } from "./i18n-store"
+export type { Locale } from "./i18n-store"
+
 export { useUserStore } from "./user-store"
 export type {
   UserProfile,

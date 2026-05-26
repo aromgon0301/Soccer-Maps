@@ -1,109 +1,33 @@
-"use client"
+'use client'
 
-import { Moon, Sun, Monitor, Globe, Check } from "lucide-react"
-import { useThemeStore, type Theme } from "@/lib/stores/theme-store"
-import { useI18nStore, type Locale } from "@/lib/stores/i18n-store"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu"
+import * as CollapsiblePrimitive from '@radix-ui/react-collapsible'
 
-export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useThemeStore()
-  const { t } = useI18nStore()
+function Collapsible({
+  ...props
+}: React.ComponentProps<typeof CollapsiblePrimitive.Root>) {
+  return <CollapsiblePrimitive.Root data-slot="collapsible" {...props} />
+}
 
-  const themes: { value: Theme; icon: typeof Sun; label: string }[] = [
-    { value: "light", icon: Sun, label: t("theme.light") },
-    { value: "dark", icon: Moon, label: t("theme.dark") },
-    { value: "system", icon: Monitor, label: t("theme.system") },
-  ]
-
+function CollapsibleTrigger({
+  ...props
+}: React.ComponentProps<typeof CollapsiblePrimitive.CollapsibleTrigger>) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-primary-foreground hover:text-accent hover:bg-primary-foreground/10"
-        >
-          {resolvedTheme === "dark" ? (
-            <Moon className="h-5 w-5" />
-          ) : (
-            <Sun className="h-5 w-5" />
-          )}
-          <span className="sr-only">{t("theme.title")}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>{t("theme.title")}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {themes.map(({ value, icon: Icon, label }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setTheme(value)}
-            className="cursor-pointer"
-          >
-            <Icon className="mr-2 h-4 w-4" />
-            {label}
-            {theme === value && <Check className="ml-auto h-4 w-4" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <CollapsiblePrimitive.CollapsibleTrigger
+      data-slot="collapsible-trigger"
+      {...props}
+    />
   )
 }
 
-export function LanguageToggle() {
-  const { locale, setLocale, t } = useI18nStore()
-
-  const languages: { value: Locale; flag: string; label: string }[] = [
-    { value: "es", flag: "ES", label: t("lang.spanish") },
-    { value: "en", flag: "EN", label: t("lang.english") },
-  ]
-
+function CollapsibleContent({
+  ...props
+}: React.ComponentProps<typeof CollapsiblePrimitive.CollapsibleContent>) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-primary-foreground hover:text-accent hover:bg-primary-foreground/10"
-        >
-          <Globe className="h-5 w-5" />
-          <span className="sr-only">{t("lang.title")}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>{t("lang.title")}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {languages.map(({ value, flag, label }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setLocale(value)}
-            className="cursor-pointer"
-          >
-            <span className="mr-2 text-xs font-bold bg-muted px-1.5 py-0.5 rounded">
-              {flag}
-            </span>
-            {label}
-            {locale === value && <Check className="ml-auto h-4 w-4" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <CollapsiblePrimitive.CollapsibleContent
+      data-slot="collapsible-content"
+      {...props}
+    />
   )
 }
 
-export function SettingsControls() {
-  return (
-    <div className="flex items-center gap-1">
-      <ThemeToggle />
-      <LanguageToggle />
-    </div>
-  )
-}
+export { Collapsible, CollapsibleTrigger, CollapsibleContent }

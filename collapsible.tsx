@@ -1,314 +1,351 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { useSubscriptionStore, SUBSCRIPTION_PLANS, type PlanType } from "@/lib/stores/subscription-store"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Check, Crown, Zap, Star, Loader2, AlertTriangle } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import * as React from 'react'
+import * as RechartsPrimitive from 'recharts'
 
-export function PremiumSubscription() {
-  const { subscription, isLoading, subscribeToPlan, cancelSubscription, reactivateSubscription, getPlan } =
-    useSubscriptionStore()
-  const { toast } = useToast()
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
-  const [showCancelDialog, setShowCancelDialog] = useState(false)
-  const [processingPlan, setProcessingPlan] = useState<PlanType | null>(null)
+import { cn } from '@/lib/utils'
 
-  const currentPlan = getPlan()
-  const isSubscribed = subscription && subscription.status === "active"
+// Format: { THEME_NAME: CSS_SELECTOR }
+const THEMES = { light: '', dark: '.dark' } as const
 
-  const handleSubscribe = async (planId: PlanType) => {
-    if (planId === "free") return
+export type ChartConfig = {
+  [k in string]: {
+    label?: React.ReactNode
+    icon?: React.ComponentType
+  } & (
+    | { color?: string; theme?: never }
+    | { color?: never; theme: Record<keyof typeof THEMES, string> }
+  )
+}
 
-    setProcessingPlan(planId)
-    try {
-      await subscribeToPlan(planId, billingCycle)
-      toast({
-        title: "Suscripcion activada",
-        description: `Tu plan ${planId.toUpperCase()} esta activo. Disfruta de todas las funciones premium!`,
-      })
-    } catch {
-      toast({
-        title: "Error",
-        description: "No se pudo procesar la suscripcion. Intenta de nuevo.",
-        variant: "destructive",
-      })
-    } finally {
-      setProcessingPlan(null)
-    }
+type ChartContextProps = {
+  config: ChartConfig
+}
+
+const ChartContext = React.createContext<ChartContextProps | null>(null)
+
+function useChart() {
+  const context = React.useContext(ChartContext)
+
+  if (!context) {
+    throw new Error('useChart must be used within a <ChartContainer />')
   }
 
-  const handleCancel = async () => {
-    try {
-      await cancelSubscription()
-      setShowCancelDialog(false)
-      toast({
-        title: "Suscripcion cancelada",
-        description: "Tu suscripcion se cancelara al final del periodo actual.",
-      })
-    } catch {
-      toast({
-        title: "Error",
-        description: "No se pudo cancelar la suscripcion.",
-        variant: "destructive",
-      })
-    }
-  }
+  return context
+}
 
-  const handleReactivate = async () => {
-    try {
-      await reactivateSubscription()
-      toast({
-        title: "Suscripcion reactivada",
-        description: "Tu suscripcion continuara activa.",
-      })
-    } catch {
-      toast({
-        title: "Error",
-        description: "No se pudo reactivar la suscripcion.",
-        variant: "destructive",
-      })
-    }
-  }
+function ChartContainer({
+  id,
+  className,
+  children,
+  config,
+  ...props
+}: React.ComponentProps<'div'> & {
+  config: ChartConfig
+  children: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >['children']
+}) {
+  const uniqueId = React.useId()
+  const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`
 
-  const getPlanIcon = (planId: PlanType) => {
-    switch (planId) {
-      case "ultra":
-        return <Crown className="h-6 w-6" />
-      case "fan":
-        return <Zap className="h-6 w-6" />
-      default:
-        return <Star className="h-6 w-6" />
-    }
-  }
+  return (
+    <ChartContext.Provider value={{ config }}>
+      <div
+        data-slot="chart"
+        data-chart={chartId}
+        className={cn(
+          "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border flex aspect-video justify-center text-xs [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
+          className,
+        )}
+        {...props}
+      >
+        <ChartStyle id={chartId} config={config} />
+        <RechartsPrimitive.ResponsiveContainer>
+          {children}
+        </RechartsPrimitive.ResponsiveContainer>
+      </div>
+    </ChartContext.Provider>
+  )
+}
 
-  const getPlanColor = (planId: PlanType) => {
-    switch (planId) {
-      case "ultra":
-        return "from-amber-500 to-orange-600"
-      case "fan":
-        return "from-blue-500 to-cyan-600"
-      default:
-        return "from-gray-400 to-gray-500"
-    }
+const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+  const colorConfig = Object.entries(config).filter(
+    ([, config]) => config.theme || config.color,
+  )
+
+  if (!colorConfig.length) {
+    return null
   }
 
   return (
-    <div className="space-y-8">
-      {/* Current subscription status */}
-      {isSubscribed && (
-        <Card className="border-2 border-primary">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-gradient-to-br ${getPlanColor(subscription.plan)} text-white`}>
-                  {getPlanIcon(subscription.plan)}
-                </div>
-                <div>
-                  <CardTitle>Plan {currentPlan.nameEs}</CardTitle>
-                  <CardDescription>
-                    {subscription.billingCycle === "yearly" ? "Facturacion anual" : "Facturacion mensual"}
-                  </CardDescription>
-                </div>
-              </div>
-              <Badge variant={subscription.cancelAtPeriodEnd ? "destructive" : "default"}>
-                {subscription.cancelAtPeriodEnd ? "Cancelado" : "Activo"}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {subscription.cancelAtPeriodEnd ? (
-                <>
-                  Tu suscripcion terminara el{" "}
-                  <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString("es-ES")}</strong>
-                </>
-              ) : (
-                <>
-                  Proxima facturacion:{" "}
-                  <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString("es-ES")}</strong>
-                </>
-              )}
-            </p>
-          </CardContent>
-          <CardFooter>
-            {subscription.cancelAtPeriodEnd ? (
-              <Button onClick={handleReactivate} disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Reactivar suscripcion
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={() => setShowCancelDialog(true)}>
-                Cancelar suscripcion
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+    <style
+      dangerouslySetInnerHTML={{
+        __html: Object.entries(THEMES)
+          .map(
+            ([theme, prefix]) => `
+${prefix} [data-chart=${id}] {
+${colorConfig
+  .map(([key, itemConfig]) => {
+    const color =
+      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+      itemConfig.color
+    return color ? `  --color-${key}: ${color};` : null
+  })
+  .join('\n')}
+}
+`,
+          )
+          .join('\n'),
+      }}
+    />
+  )
+}
+
+const ChartTooltip = RechartsPrimitive.Tooltip
+
+function ChartTooltipContent({
+  active,
+  payload,
+  className,
+  indicator = 'dot',
+  hideLabel = false,
+  hideIndicator = false,
+  label,
+  labelFormatter,
+  labelClassName,
+  formatter,
+  color,
+  nameKey,
+  labelKey,
+}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
+  React.ComponentProps<'div'> & {
+    hideLabel?: boolean
+    hideIndicator?: boolean
+    indicator?: 'line' | 'dot' | 'dashed'
+    nameKey?: string
+    labelKey?: string
+  }) {
+  const { config } = useChart()
+
+  const tooltipLabel = React.useMemo(() => {
+    if (hideLabel || !payload?.length) {
+      return null
+    }
+
+    const [item] = payload
+    const key = `${labelKey || item?.dataKey || item?.name || 'value'}`
+    const itemConfig = getPayloadConfigFromPayload(config, item, key)
+    const value =
+      !labelKey && typeof label === 'string'
+        ? config[label as keyof typeof config]?.label || label
+        : itemConfig?.label
+
+    if (labelFormatter) {
+      return (
+        <div className={cn('font-medium', labelClassName)}>
+          {labelFormatter(value, payload)}
+        </div>
+      )
+    }
+
+    if (!value) {
+      return null
+    }
+
+    return <div className={cn('font-medium', labelClassName)}>{value}</div>
+  }, [
+    label,
+    labelFormatter,
+    payload,
+    hideLabel,
+    labelClassName,
+    config,
+    labelKey,
+  ])
+
+  if (!active || !payload?.length) {
+    return null
+  }
+
+  const nestLabel = payload.length === 1 && indicator !== 'dot'
+
+  return (
+    <div
+      className={cn(
+        'border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl',
+        className,
       )}
-
-      {/* Billing cycle toggle */}
-      <div className="flex items-center justify-center gap-4">
-        <Label
-          htmlFor="billing-toggle"
-          className={billingCycle === "monthly" ? "font-semibold" : "text-muted-foreground"}
-        >
-          Mensual
-        </Label>
-        <Switch
-          id="billing-toggle"
-          checked={billingCycle === "yearly"}
-          onCheckedChange={(checked) => setBillingCycle(checked ? "yearly" : "monthly")}
-        />
-        <Label
-          htmlFor="billing-toggle"
-          className={billingCycle === "yearly" ? "font-semibold" : "text-muted-foreground"}
-        >
-          Anual
-          <Badge variant="secondary" className="ml-2">
-            -17%
-          </Badge>
-        </Label>
-      </div>
-
-      {/* Pricing cards */}
-      <div className="grid md:grid-cols-3 gap-6">
-        {SUBSCRIPTION_PLANS.map((plan) => {
-          const price = billingCycle === "yearly" ? plan.priceYearly : plan.price
-          const monthlyEquivalent = billingCycle === "yearly" ? (plan.priceYearly / 12).toFixed(2) : null
-          const isCurrentPlan = currentPlan.id === plan.id
-          const isUpgrade =
-            SUBSCRIPTION_PLANS.findIndex((p) => p.id === plan.id) >
-            SUBSCRIPTION_PLANS.findIndex((p) => p.id === currentPlan.id)
-          const isProcessing = processingPlan === plan.id
+    >
+      {!nestLabel ? tooltipLabel : null}
+      <div className="grid gap-1.5">
+        {payload.map((item, index) => {
+          const key = `${nameKey || item.name || item.dataKey || 'value'}`
+          const itemConfig = getPayloadConfigFromPayload(config, item, key)
+          const indicatorColor = color || item.payload.fill || item.color
 
           return (
-            <Card
-              key={plan.id}
-              className={`relative ${plan.id === "ultra" ? "border-2 border-amber-500 shadow-lg" : ""} ${
-                isCurrentPlan ? "ring-2 ring-primary" : ""
-              }`}
-            >
-              {plan.id === "ultra" && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-600">Mas popular</Badge>
-                </div>
+            <div
+              key={item.dataKey}
+              className={cn(
+                '[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5',
+                indicator === 'dot' && 'items-center',
               )}
-
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg bg-gradient-to-br ${getPlanColor(plan.id)} text-white`}>
-                    {getPlanIcon(plan.id)}
-                  </div>
-                  <div>
-                    <CardTitle>{plan.nameEs}</CardTitle>
-                    {isCurrentPlan && <Badge variant="outline">Plan actual</Badge>}
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <div>
-                  <span className="text-4xl font-bold">{price === 0 ? "Gratis" : `${price}€`}</span>
-                  {price > 0 && (
-                    <span className="text-muted-foreground">/{billingCycle === "yearly" ? "ano" : "mes"}</span>
+            >
+              {formatter && item?.value !== undefined && item.name ? (
+                formatter(item.value, item.name, item, index, item.payload)
+              ) : (
+                <>
+                  {itemConfig?.icon ? (
+                    <itemConfig.icon />
+                  ) : (
+                    !hideIndicator && (
+                      <div
+                        className={cn(
+                          'shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)',
+                          {
+                            'h-2.5 w-2.5': indicator === 'dot',
+                            'w-1': indicator === 'line',
+                            'w-0 border-[1.5px] border-dashed bg-transparent':
+                              indicator === 'dashed',
+                            'my-0.5': nestLabel && indicator === 'dashed',
+                          },
+                        )}
+                        style={
+                          {
+                            '--color-bg': indicatorColor,
+                            '--color-border': indicatorColor,
+                          } as React.CSSProperties
+                        }
+                      />
+                    )
                   )}
-                  {monthlyEquivalent && price > 0 && (
-                    <p className="text-sm text-muted-foreground">{monthlyEquivalent}€/mes equivalente</p>
-                  )}
-                </div>
-
-                <ul className="space-y-2">
-                  {plan.featuresEs.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm">
-                      <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-
-              <CardFooter>
-                {plan.id === "free" ? (
-                  <Button variant="outline" className="w-full bg-transparent" disabled>
-                    Plan basico
-                  </Button>
-                ) : isCurrentPlan ? (
-                  <Button variant="outline" className="w-full bg-transparent" disabled>
-                    Plan actual
-                  </Button>
-                ) : (
-                  <Button
-                    className={`w-full ${plan.id === "ultra" ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" : ""}`}
-                    onClick={() => handleSubscribe(plan.id)}
-                    disabled={isLoading || isProcessing}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Procesando...
-                      </>
-                    ) : isUpgrade ? (
-                      `Mejorar a ${plan.nameEs}`
-                    ) : (
-                      `Suscribirse a ${plan.nameEs}`
+                  <div
+                    className={cn(
+                      'flex flex-1 justify-between leading-none',
+                      nestLabel ? 'items-end' : 'items-center',
                     )}
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
+                  >
+                    <div className="grid gap-1.5">
+                      {nestLabel ? tooltipLabel : null}
+                      <span className="text-muted-foreground">
+                        {itemConfig?.label || item.name}
+                      </span>
+                    </div>
+                    {item.value && (
+                      <span className="text-foreground font-mono font-medium tabular-nums">
+                        {item.value.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )
         })}
       </div>
-
-      {/* Cancel dialog */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Cancelar suscripcion
-            </DialogTitle>
-            <DialogDescription>
-              Estas seguro de que quieres cancelar tu suscripcion? Perderas acceso a las funciones premium al final del
-              periodo de facturacion actual.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="bg-muted p-4 rounded-lg">
-            <p className="text-sm">
-              <strong>Tu suscripcion permanecera activa hasta:</strong>
-              <br />
-              {subscription &&
-                new Date(subscription.currentPeriodEnd).toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
-              Mantener suscripcion
-            </Button>
-            <Button variant="destructive" onClick={handleCancel} disabled={isLoading}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Confirmar cancelacion
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
+}
+
+const ChartLegend = RechartsPrimitive.Legend
+
+function ChartLegendContent({
+  className,
+  hideIcon = false,
+  payload,
+  verticalAlign = 'bottom',
+  nameKey,
+}: React.ComponentProps<'div'> &
+  Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {
+    hideIcon?: boolean
+    nameKey?: string
+  }) {
+  const { config } = useChart()
+
+  if (!payload?.length) {
+    return null
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-center gap-4',
+        verticalAlign === 'top' ? 'pb-3' : 'pt-3',
+        className,
+      )}
+    >
+      {payload.map((item) => {
+        const key = `${nameKey || item.dataKey || 'value'}`
+        const itemConfig = getPayloadConfigFromPayload(config, item, key)
+
+        return (
+          <div
+            key={item.value}
+            className="[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3"
+          >
+            {itemConfig?.icon && !hideIcon ? (
+              <itemConfig.icon />
+            ) : (
+              <div
+                className="h-2 w-2 shrink-0 rounded-[2px]"
+                style={{
+                  backgroundColor: item.color,
+                }}
+              />
+            )}
+            {itemConfig?.label}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Helper to extract item config from a payload.
+function getPayloadConfigFromPayload(
+  config: ChartConfig,
+  payload: unknown,
+  key: string,
+) {
+  if (typeof payload !== 'object' || payload === null) {
+    return undefined
+  }
+
+  const payloadPayload =
+    'payload' in payload &&
+    typeof payload.payload === 'object' &&
+    payload.payload !== null
+      ? payload.payload
+      : undefined
+
+  let configLabelKey: string = key
+
+  if (
+    key in payload &&
+    typeof payload[key as keyof typeof payload] === 'string'
+  ) {
+    configLabelKey = payload[key as keyof typeof payload] as string
+  } else if (
+    payloadPayload &&
+    key in payloadPayload &&
+    typeof payloadPayload[key as keyof typeof payloadPayload] === 'string'
+  ) {
+    configLabelKey = payloadPayload[
+      key as keyof typeof payloadPayload
+    ] as string
+  }
+
+  return configLabelKey in config
+    ? config[configLabelKey]
+    : config[key as keyof typeof config]
+}
+
+export {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
 }

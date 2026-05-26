@@ -1,190 +1,252 @@
-"use client"
+'use client'
 
-import Link from "next/link"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, User, BarChart3, Crown, LogIn, LogOut, UserPlus } from "lucide-react"
-import { useSubscriptionStore } from "@/lib/stores/subscription-store"
-import { useAuthStore } from "@/lib/stores/auth-store"
-import { useI18nStore } from "@/lib/stores/i18n-store"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { SettingsControls } from "@/components/settings-controls"
+import * as React from 'react'
+import * as ContextMenuPrimitive from '@radix-ui/react-context-menu'
+import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
 
-interface SiteHeaderProps {
-  backHref?: string
-  backLabel?: string
-  subtitle?: string
-  showNav?: boolean
+import { cn } from '@/lib/utils'
+
+function ContextMenu({
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Root>) {
+  return <ContextMenuPrimitive.Root data-slot="context-menu" {...props} />
 }
 
-export function SiteHeader({ backHref, backLabel, subtitle, showNav = false }: SiteHeaderProps) {
-  const { subscription } = useSubscriptionStore()
-  const { currentUser, isAuthenticated, logout } = useAuthStore()
-  const { t } = useI18nStore()
-  const router = useRouter()
-
-  const isPremium = subscription && subscription.status === "active" && subscription.plan !== "free"
-
-  const handleLogout = () => {
-    logout()
-    router.push("/")
-  }
-
+function ContextMenuTrigger({
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Trigger>) {
   return (
-    <header className="bg-primary text-primary-foreground sticky top-0 z-50 border-b border-primary/20">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* Left side - Back button or Logo */}
-          {backHref ? (
-            <Link
-              href={backHref}
-              className="flex items-center gap-2 hover:text-accent transition-colors text-primary-foreground"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-semibold">{backLabel || t("nav.back")}</span>
-            </Link>
-          ) : (
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-11 h-11 relative flex-shrink-0">
-                <Image
-                  src="/logo-soccer-maps.png"
-                  alt="Soccer Maps Logo"
-                  fill
-                  className="object-contain rounded-lg"
-                  priority
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight group-hover:text-accent transition-colors font-sans">
-                  Soccer Maps
-                </h1>
-                <p className="text-sm text-primary-foreground/80">{subtitle || t("header.subtitle")}</p>
-              </div>
-            </Link>
-          )}
-
-          {/* Right side */}
-          {backHref ? (
-            <div className="flex items-center gap-2">
-              <SettingsControls />
-              <Link href="/" className="flex items-center gap-3 group">
-                <div className="w-10 h-10 relative flex-shrink-0">
-                  <Image
-                    src="/logo-soccer-maps.png"
-                    alt="Soccer Maps Logo"
-                    fill
-                    className="object-contain rounded-lg"
-                    priority
-                  />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-xl font-bold group-hover:text-accent transition-colors font-sans">
-                    Soccer Maps
-                  </h1>
-                  <p className="text-xs text-primary-foreground/80">{subtitle || t("header.subtitle")}</p>
-                </div>
-              </Link>
-            </div>
-          ) : showNav ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Settings Controls (Theme & Language) */}
-              <SettingsControls />
-              
-              <Link
-                href="/premium"
-                className="flex items-center gap-1.5 hover:text-accent transition-colors text-primary-foreground"
-              >
-                <Crown className={`w-5 h-5 ${isPremium ? "text-amber-400" : ""}`} />
-                <span className="hidden sm:inline text-sm">{t("nav.premium")}</span>
-                {isPremium && (
-                  <Badge variant="secondary" className="bg-amber-500/20 text-amber-300 text-xs">
-                    {subscription?.plan?.toUpperCase()}
-                  </Badge>
-                )}
-              </Link>
-              <Link
-                href="/comparator"
-                className="flex items-center gap-1.5 hover:text-accent transition-colors text-primary-foreground"
-              >
-                <BarChart3 className="w-5 h-5" />
-                <span className="hidden sm:inline text-sm">{t("nav.comparator")}</span>
-              </Link>
-
-              {/* Auth-aware section */}
-              {isAuthenticated && currentUser ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2 hover:text-accent transition-colors focus:outline-none">
-                      <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-accent-foreground text-sm font-bold">
-                        {currentUser.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="hidden sm:inline text-sm font-medium max-w-[100px] truncate">
-                        {currentUser.name}
-                      </span>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <div className="px-2 py-1.5">
-                      <p className="text-sm font-medium">{currentUser.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{currentUser.email}</p>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile" className="cursor-pointer">
-                        <User className="w-4 h-4 mr-2" />
-                        {t("nav.profile")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/premium" className="cursor-pointer">
-                        <Crown className="w-4 h-4 mr-2" />
-                        {t("nav.subscription")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      {t("nav.logout")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Link href="/login">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary-foreground hover:text-accent hover:bg-primary-foreground/10"
-                    >
-                      <LogIn className="w-4 h-4 mr-1.5" />
-                      <span className="hidden sm:inline">{t("nav.login")}</span>
-                    </Button>
-                  </Link>
-                  <Link href="/registro">
-                    <Button
-                      size="sm"
-                      className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                    >
-                      <UserPlus className="w-4 h-4 sm:mr-1.5" />
-                      <span className="hidden sm:inline">{t("nav.register")}</span>
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          ) : (
-            <SettingsControls />
-          )}
-        </div>
-      </div>
-    </header>
+    <ContextMenuPrimitive.Trigger data-slot="context-menu-trigger" {...props} />
   )
+}
+
+function ContextMenuGroup({
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Group>) {
+  return (
+    <ContextMenuPrimitive.Group data-slot="context-menu-group" {...props} />
+  )
+}
+
+function ContextMenuPortal({
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Portal>) {
+  return (
+    <ContextMenuPrimitive.Portal data-slot="context-menu-portal" {...props} />
+  )
+}
+
+function ContextMenuSub({
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Sub>) {
+  return <ContextMenuPrimitive.Sub data-slot="context-menu-sub" {...props} />
+}
+
+function ContextMenuRadioGroup({
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.RadioGroup>) {
+  return (
+    <ContextMenuPrimitive.RadioGroup
+      data-slot="context-menu-radio-group"
+      {...props}
+    />
+  )
+}
+
+function ContextMenuSubTrigger({
+  className,
+  inset,
+  children,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.SubTrigger> & {
+  inset?: boolean
+}) {
+  return (
+    <ContextMenuPrimitive.SubTrigger
+      data-slot="context-menu-sub-trigger"
+      data-inset={inset}
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+      <ChevronRightIcon className="ml-auto" />
+    </ContextMenuPrimitive.SubTrigger>
+  )
+}
+
+function ContextMenuSubContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.SubContent>) {
+  return (
+    <ContextMenuPrimitive.SubContent
+      data-slot="context-menu-sub-content"
+      className={cn(
+        'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+function ContextMenuContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
+  return (
+    <ContextMenuPrimitive.Portal>
+      <ContextMenuPrimitive.Content
+        data-slot="context-menu-content"
+        className={cn(
+          'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-context-menu-content-available-height) min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md',
+          className,
+        )}
+        {...props}
+      />
+    </ContextMenuPrimitive.Portal>
+  )
+}
+
+function ContextMenuItem({
+  className,
+  inset,
+  variant = 'default',
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Item> & {
+  inset?: boolean
+  variant?: 'default' | 'destructive'
+}) {
+  return (
+    <ContextMenuPrimitive.Item
+      data-slot="context-menu-item"
+      data-inset={inset}
+      data-variant={variant}
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+function ContextMenuCheckboxItem({
+  className,
+  children,
+  checked,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.CheckboxItem>) {
+  return (
+    <ContextMenuPrimitive.CheckboxItem
+      data-slot="context-menu-checkbox-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      checked={checked}
+      {...props}
+    >
+      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <ContextMenuPrimitive.ItemIndicator>
+          <CheckIcon className="size-4" />
+        </ContextMenuPrimitive.ItemIndicator>
+      </span>
+      {children}
+    </ContextMenuPrimitive.CheckboxItem>
+  )
+}
+
+function ContextMenuRadioItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.RadioItem>) {
+  return (
+    <ContextMenuPrimitive.RadioItem
+      data-slot="context-menu-radio-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <ContextMenuPrimitive.ItemIndicator>
+          <CircleIcon className="size-2 fill-current" />
+        </ContextMenuPrimitive.ItemIndicator>
+      </span>
+      {children}
+    </ContextMenuPrimitive.RadioItem>
+  )
+}
+
+function ContextMenuLabel({
+  className,
+  inset,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Label> & {
+  inset?: boolean
+}) {
+  return (
+    <ContextMenuPrimitive.Label
+      data-slot="context-menu-label"
+      data-inset={inset}
+      className={cn(
+        'text-foreground px-2 py-1.5 text-sm font-medium data-[inset]:pl-8',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+function ContextMenuSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Separator>) {
+  return (
+    <ContextMenuPrimitive.Separator
+      data-slot="context-menu-separator"
+      className={cn('bg-border -mx-1 my-1 h-px', className)}
+      {...props}
+    />
+  )
+}
+
+function ContextMenuShortcut({
+  className,
+  ...props
+}: React.ComponentProps<'span'>) {
+  return (
+    <span
+      data-slot="context-menu-shortcut"
+      className={cn(
+        'text-muted-foreground ml-auto text-xs tracking-widest',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuCheckboxItem,
+  ContextMenuRadioItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuGroup,
+  ContextMenuPortal,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuRadioGroup,
 }
